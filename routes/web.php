@@ -4,14 +4,20 @@ use App\Http\Controllers\AgirController;
 use App\Http\Controllers\AproposController;
 use App\Http\Controllers\backend\AdminController;
 use App\Http\Controllers\backend\DashboardController;
+use App\Http\Controllers\backend\FlashInfoController;
 use App\Http\Controllers\backend\ModuleController;
+use App\Http\Controllers\backend\PageController;
 use App\Http\Controllers\backend\ParametreController;
+use App\Http\Controllers\backend\PaymentMethodController;
 use App\Http\Controllers\backend\PermissionController;
 use App\Http\Controllers\backend\ProgrammeController;
 use App\Http\Controllers\backend\RoleController;
+use App\Http\Controllers\backend\SiteSectionController;
+use App\Http\Controllers\backend\TestimonialController;
 use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\EngagementController;
 use App\Http\Controllers\frontend\indexController;
+use App\Http\Controllers\frontend\SeoController;
 use App\Http\Controllers\GalerieController;
 use App\Http\Controllers\ImpactController;
 use App\Http\Controllers\NewsController;
@@ -28,31 +34,47 @@ use Illuminate\Support\Facades\Route;
 
 Route::controller(indexController::class)->group(function () {
     Route::get('/', 'index')->name('index');
+    Route::get('/a-propos', 'apropos')->name('apropos');
     Route::get('/galerie', 'galerie')->name('galerie');
-    
+    Route::get('/faire-un-don', 'don')->name('don');
+    Route::get('/contact', 'contact')->name('contact');
+    Route::get('/page/{slug}', 'page')->name('page.show');
+
     // Détails (Common-show)
+    Route::get('/programmes/{slug}', 'showProgramme')->name('programmes.show');
     Route::get('/realisations/{slug}', 'showRealisation')->name('realisations.show');
     Route::get('/projets/{slug}', 'showProjet')->name('projets.show');
-    Route::get('/news/{slug}', 'showNews')->name('news.show');
-    
+    Route::get('/actualites/{slug}', 'showNews')->name('news.show');
+
     // Listes complètes (List-all)
     Route::get('/realisations', 'allRealisations')->name('realisations.all');
-    Route::get('/projets-list', 'allProjets')->name('projets.all');
+    Route::get('/projets', 'allProjets')->name('projets.all');
     Route::get('/actualites', 'allNews')->name('news.all');
 });
 
-// Routes d'actions (Agir & Soutenir) - Redirects vers sections
+// Référencement : plan du site et consignes pour les moteurs de recherche
+Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
+Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
+
+// Anciennes adresses : redirections permanentes pour ne pas perdre les liens existants
+Route::permanentRedirect('/projets-list', '/projets');
+Route::get('/news/{slug}', fn (string $slug) => redirect()->route('news.show', $slug, 301));
+
+// Routes d'actions (Agir & Soutenir) - Redirects vers la page « Faire un don »
 Route::name('agir.')->group(function () {
-    Route::get('/donation', fn() => redirect('/#agir'))->name('donation');
-    Route::get('/sponsorship', fn() => redirect('/#contact'))->name('sponsorship');
-    Route::get('/volunteer', fn() => redirect('/#contact'))->name('volunteer');
+    Route::get('/donation', fn() => redirect()->route('don'))->name('donation');
+    Route::get('/sponsorship', fn() => redirect()->route('don', ['type' => 'sponsorship']))->name('sponsorship');
+    Route::get('/volunteer', fn() => redirect()->route('don', ['type' => 'volunteer']))->name('volunteer');
 });
 
-// Route d'envoi du formulaire de contact (Doit être hors du middleware admin)
-Route::post('/contact/store', [ContactMessageController::class, 'store'])->name('contact.store');
+// Formulaires publics, limités à 6 envois par minute et par visiteur contre le spam
+Route::middleware('throttle:6,1')->group(function () {
+    // Route d'envoi du formulaire de contact (Doit être hors du middleware admin)
+    Route::post('/contact/store', [ContactMessageController::class, 'store'])->name('contact.store');
 
-// Route d'envoi du formulaire d'engagement
-Route::post('/engagement/store', [EngagementController::class, 'store'])->name('engagement.store');
+    // Route d'envoi du formulaire d'engagement
+    Route::post('/engagement/store', [EngagementController::class, 'store'])->name('engagement.store');
+});
 
 
 /*
@@ -128,8 +150,8 @@ Route::middleware(['admin'])->prefix('admin')->group(function () {
     Route::prefix('galerie')->controller(GalerieController::class)->group(function () {
         Route::get('/', 'index')->name('galerie.index');
         Route::post('/store', 'store')->name('galerie.store');
-        Route::put('/update/{id}', 'update')->name('galerie.update');
-        Route::delete('/delete/{id}', 'destroy')->name('galerie.destroy');
+        Route::put('/update/{galerie}', 'update')->name('galerie.update');
+        Route::delete('/delete/{galerie}', 'destroy')->name('galerie.destroy');
     });
 
     // Apropos
@@ -213,6 +235,44 @@ Route::middleware(['admin'])->prefix('admin')->group(function () {
         Route::delete('/delete/{engagement}', 'destroy')->name('engagements.destroy');
     });
 
+    // Sections de la page d'accueil (textes, ordre, activation)
+    Route::prefix('sections')->controller(SiteSectionController::class)->group(function () {
+        Route::get('/', 'index')->name('sections.index');
+        Route::put('/update/{section}', 'update')->name('sections.update');
+    });
+
+    // Infos flash (bandeau d'annonces)
+    Route::prefix('flash-infos')->controller(FlashInfoController::class)->group(function () {
+        Route::get('/', 'index')->name('flash-infos.index');
+        Route::post('/store', 'store')->name('flash-infos.store');
+        Route::put('/update/{flashInfo}', 'update')->name('flash-infos.update');
+        Route::delete('/delete/{flashInfo}', 'destroy')->name('flash-infos.destroy');
+    });
+
+    // Témoignages
+    Route::prefix('temoignages')->controller(TestimonialController::class)->group(function () {
+        Route::get('/', 'index')->name('temoignages.index');
+        Route::post('/store', 'store')->name('temoignages.store');
+        Route::put('/update/{temoignage}', 'update')->name('temoignages.update');
+        Route::delete('/delete/{temoignage}', 'destroy')->name('temoignages.destroy');
+    });
+
+    // Moyens de don (RIB, Wave...)
+    Route::prefix('moyens-don')->controller(PaymentMethodController::class)->group(function () {
+        Route::get('/', 'index')->name('moyens-don.index');
+        Route::post('/store', 'store')->name('moyens-don.store');
+        Route::put('/update/{moyen}', 'update')->name('moyens-don.update');
+        Route::delete('/delete/{moyen}', 'destroy')->name('moyens-don.destroy');
+    });
+
+    // Pages libres (mentions légales, confidentialité...)
+    Route::prefix('pages')->controller(PageController::class)->group(function () {
+        Route::get('/', 'index')->name('pages.index');
+        Route::post('/store', 'store')->name('pages.store');
+        Route::put('/update/{page}', 'update')->name('pages.update');
+        Route::delete('/delete/{page}', 'destroy')->name('pages.destroy');
+    });
+
 });
 
 /*
@@ -221,6 +281,5 @@ Route::middleware(['admin'])->prefix('admin')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::fallback(function () {
-    return view('backend.utility.auth-404-basic');
-});
+// Vrai code 404 (et non une page « introuvable » servie en 200, pénalisée par les moteurs de recherche)
+Route::fallback(fn () => abort(404));

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-
+use App\Support\ImageOptimizer;
 use App\Models\Realisation;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -32,7 +32,7 @@ class RealisationController extends Controller
     // 2. Upload de l'image de manière sécurisée
     $imagePath = null;
     if ($request->hasFile('image')) {
-        $imagePath = $request->file('image')->store('realisations', 'public');
+        $imagePath = ImageOptimizer::store($request->file('image'), 'realisations');
     }
 
     // 3. Création dans la base de données
@@ -61,7 +61,7 @@ class RealisationController extends Controller
 
         if ($request->hasFile('image')) {
             Storage::disk('public')->delete($realisation->image);
-            $realisation->image = $request->file('image')->store('realisations', 'public');
+            $realisation->image = ImageOptimizer::store($request->file('image'), 'realisations');
         }
 
         $realisation->update([
@@ -94,11 +94,5 @@ class RealisationController extends Controller
         }
 
         return response()->json(['status' => 'ok']);
-    }
-
-    public function show($slug)
-    {
-        $realisation = Realisation::where('slug', $slug)->firstOrFail();
-        return view('frontend.realisations.show', compact('realisation'));
     }
 }

@@ -21,6 +21,12 @@
 
 @yield('script')
 @yield('script-bottom')
+{{-- certaines pages (Engagements) ajoutent leurs scripts avec @push('scripts') : sans cette ligne ils n'étaient jamais chargés --}}
+@stack('scripts')
+
+{{-- Comportement de l'admin (menu, thème, mots de passe) : chargé ici une fois pour toutes les pages --}}
+<script src="{{ URL::asset('adm/js/admin.js') }}?v={{ filemtime(public_path('adm/js/admin.js')) }}"></script>
+
 
 
 

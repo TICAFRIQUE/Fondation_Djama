@@ -58,6 +58,20 @@
                             id="color_text{{ $prog->id }}" value="{{ old('color_text', $prog->color_text) }}">
                     </div>
 
+                    <div class="col-md-6">
+                        <label for="order{{ $prog->id }}" class="form-label">Ordre</label>
+                        <input type="number" name="order" class="form-control" id="order{{ $prog->id }}" min="0"
+                            value="{{ $prog->order }}">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="is_active{{ $prog->id }}" class="form-label">Statut</label>
+                        <select name="is_active" class="form-control" id="is_active{{ $prog->id }}">
+                            <option value="1" {{ $prog->is_active ? 'selected' : '' }}>Actif</option>
+                            <option value="0" {{ !$prog->is_active ? 'selected' : '' }}>Inactif</option>
+                        </select>
+                    </div>
+
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fermer</button>
                         <button type="submit" class="btn btn-primary">Modifier</button>

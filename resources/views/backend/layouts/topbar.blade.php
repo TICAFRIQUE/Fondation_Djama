@@ -1,133 +1,56 @@
-<header id="page-topbar">
-    <div class="layout-width">
-        <div class="navbar-header">
-            <div class="d-flex">
-                <!-- LOGO -->
-                <div class="navbar-brand-box horizontal-logo">
-                    <a href="index" class="logo logo-dark">
-                        <span class="logo-sm">
-                            <img src="{{ URL::asset('build/images/logo-sm.png') }}" alt="" height="22">
-                        </span>
-                        <span class="logo-lg">
-                            <img src="{{ URL::asset('build/images/logo-dark.png') }}" alt="" height="17">
-                        </span>
-                    </a>
+{{-- Barre du haut de l'admin : bouton du menu, accès au site, thème clair/sombre, compte --}}
+@php
+    $user = Auth::user();
+    $initials = mb_strtoupper(mb_substr($user->username ?? $user->email ?? '?', 0, 2));
+@endphp
+<header class="adm-topbar">
+    {{-- sur ordinateur : réduit le menu aux icônes ; sur mobile : ouvre le menu par-dessus la page --}}
+    <button type="button" class="adm-icon-btn" id="topnav-hamburger-icon" data-adm-toggle aria-controls="admSidebar"
+        aria-label="Afficher ou réduire le menu">
+        <i class="ri-menu-2-line"></i>
+    </button>
 
-                    <a href="index" class="logo logo-light">
-                        <span class="logo-sm">
-                            <img src="{{ URL::asset('build/images/logo-sm.png') }}" alt="" height="22">
-                        </span>
-                        <span class="logo-lg">
-                            <img src="{{ URL::asset('build/images/logo-light.png') }}" alt="" height="17">
-                        </span>
-                    </a>
-                </div>
+    <div class="adm-topbar-tools">
+        <a href="{{ route('index') }}" target="_blank" rel="noopener" class="btn btn-soft-primary btn-sm d-none d-sm-inline-flex align-items-center gap-1">
+            <i class="ri-external-link-line"></i> Voir le site
+        </a>
 
-                <button type="button"
-                    class="btn btn-sm px-3 fs-16 header-item vertical-menu-btn topnav-hamburger material-shadow-none"
-                    id="topnav-hamburger-icon">
-                    <span class="hamburger-icon">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </span>
-                </button>
+        <button type="button" class="adm-icon-btn" data-adm-theme aria-label="Passer du thème clair au thème sombre">
+            <i class="ri-moon-line"></i>
+        </button>
 
-
-            </div>
-
-            <div class="d-flex align-items-center">
-
-
-
-                <div class="ms-1 header-item d-none d-sm-flex">
-                    <button type="button"
-                        class="btn btn-icon btn-topbar material-shadow-none btn-ghost-secondary rounded-circle light-dark-mode">
-                        <i class='bx bx-moon fs-22'></i>
-                    </button>
-                </div>
-
-
-
-                <!-- ========== Start profil ========== -->
-
-                @auth
-                    <div class="dropdown ms-sm-3 header-item topbar-user ">
-                        <button type="button" class="btn material-shadow-none" id="page-header-user-dropdown"
-                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <span class="d-flex align-items-center">
-                                <img class="rounded-circle header-profile-user"
-                                    src="@if (Auth::user()->avatar != '') {{ URL::asset('images/' . Auth::user()->avatar) }}@else{{ URL::asset('images/user-icon.png') }} @endif"
-                                    alt="Header Avatar">
-                                <span class="text-start ms-xl-2">
-                                    <span
-                                        class="d-none d-xl-inline-block ms-1 fw-medium user-name-text">{{ Auth::user()->username }}</span>
-                                    <span
-                                        class="d-none d-xl-block ms-1 fs-12 user-name-sub-text">{{ Auth::user()->roles[0]->name ?? '' }}</span>
-                                </span>
-                            </span>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-end">
-                            <!-- item-->
-                            <h6 class="dropdown-header">Bienvenue {{ Auth::user()->username }} !</h6>
-                            <a class="dropdown-item" href="{{ route('admin-register.profil', Auth::user()->id) }}"><i
-                                    class="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i> <span
-                                    class="align-middle">Profil</span></a>
-
-
-                            <a class="dropdown-item" href="#"><i
-                                    class="mdi mdi-lifebuoy text-muted fs-16 align-middle me-1"></i> <span
-                                    class="align-middle">Aide</span></a>
-                            <div class="dropdown-divider"></div>
-
-                            {{-- <a class="dropdown-item" href="pages-profile-settings"><i
-                                class="mdi mdi-cog-outline text-muted fs-16 align-middle me-1"></i> <span
-                                class="align-middle">Parametre</span></a> --}}
-
-                            @if (Auth::check() && Auth::user())
-                                <a class="dropdown-item " href="javascript:void();"
-                                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();"><i
-                                        class="bx bx-power-off font-size-16 align-middle me-1"></i> <span
-                                        key="t-logout">Déconnexion</span></a>
-                                <form id="logout-form" action="{{ route('admin.logout') }}" method="POST"
-                                    style="display: none;">
-                                    @csrf
-                                </form>
-                            @endif
-                        </div>
-                    </div>
-                @endauth
-                <!-- ========== End profil ========== -->
-
+        <!-- ========== Start profil ========== -->
+        <div class="dropdown">
+            <button type="button" class="adm-user" id="page-header-user-dropdown" data-bs-toggle="dropdown" aria-haspopup="true"
+                aria-expanded="false">
+                @if ($user->avatar != '')
+                    <img class="adm-avatar" src="{{ URL::asset('images/' . $user->avatar) }}" alt="">
+                @else
+                    <span class="adm-avatar">{{ $initials }}</span>
+                @endif
+                <span class="adm-user-text d-none d-md-block">
+                    <strong>{{ $user->username }}</strong>
+                    <small>{{ $user->roles[0]->name ?? $user->role }}</small>
+                </span>
+                <i class="ri-arrow-down-s-line d-none d-md-block"></i>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end">
+                <h6 class="dropdown-header">Bienvenue {{ $user->username }} !</h6>
+                <a class="dropdown-item" href="{{ route('admin-register.profil', $user->id) }}">
+                    <i class="ri-account-circle-line text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Profil</span>
+                </a>
+                <a class="dropdown-item d-sm-none" href="{{ route('index') }}" target="_blank" rel="noopener">
+                    <i class="ri-external-link-line text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Voir le site</span>
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    <i class="ri-logout-box-r-line text-muted fs-16 align-middle me-1"></i> <span class="align-middle">Déconnexion</span>
+                </a>
+                <form id="logout-form" action="{{ route('admin.logout') }}" method="POST" style="display: none;">
+                    @csrf
+                </form>
             </div>
         </div>
+        <!-- ========== End profil ========== -->
     </div>
 </header>
-
-<!-- removeNotificationModal -->
-<div id="removeNotificationModal" class="modal fade zoomIn" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
-                    id="NotificationModalbtn-close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mt-2 text-center">
-                    <lord-icon src="https://cdn.lordicon.com/gsqxdxog.json" trigger="loop"
-                        colors="primary:#f7b84b,secondary:#f06548" style="width:100px;height:100px"></lord-icon>
-                    <div class="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
-                        <h4>Are you sure ?</h4>
-                        <p class="text-muted mx-4 mb-0">Are you sure you want to remove this Notification ?</p>
-                    </div>
-                </div>
-                <div class="d-flex gap-2 justify-content-center mt-4 mb-2">
-                    <button type="button" class="btn w-sm btn-light" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn w-sm btn-danger" id="delete-notification">Yes, Delete
-                        It!</button>
-                </div>
-            </div>
-
-        </div><!-- /.modal-content -->
-    </div><!-- /.modal-dialog -->
-</div><!-- /.modal -->

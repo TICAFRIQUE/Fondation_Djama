@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ImageOptimizer;
 use App\Models\Apropos;
 use App\Models\AproposItem;
 use Illuminate\Http\Request;
@@ -41,7 +42,7 @@ class AproposController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('apropos', 'public');
+            $data['image'] = ImageOptimizer::store($request->file('image'), 'apropos');
         }
 
         Apropos::create($data);
@@ -78,7 +79,7 @@ class AproposController extends Controller
             if ($apropos->image && Storage::exists('public/' . $apropos->image)) {
                 Storage::delete('public/' . $apropos->image);
             }
-            $data['image'] = $request->file('image')->store('apropos', 'public');
+            $data['image'] = ImageOptimizer::store($request->file('image'), 'apropos');
         }
 
         $apropos->update($data);

@@ -42,6 +42,8 @@
                                     <th>Titre</th>
                                     <th>Description</th>
                                     <th>Couleur</th>
+                                    <th>Ordre</th>
+                                    <th>Statut</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -55,6 +57,14 @@
                                         <span style="background:{{ $prog->color_bg }};color:{{ $prog->color_text }};padding:8px 12px;border-radius:10px;font-weight:600;">
                                             Style
                                         </span>
+                                    </td>
+                                    <td>{{ $prog->order }}</td>
+                                    <td>
+                                        @if($prog->is_active)
+                                            <span class="badge bg-success">Actif</span>
+                                        @else
+                                            <span class="badge bg-danger">Inactif</span>
+                                        @endif
                                     </td>
                                     <td>
                                         <div class="dropdown d-inline-block">
@@ -96,8 +106,6 @@
 @endsection
 
 @section('script')
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
-        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
 
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
@@ -109,7 +117,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
 
     <script src="{{ URL::asset('build/js/pages/datatables.init.js') }}"></script>
-    <script src="{{ URL::asset('build/js/app.js') }}"></script>
 
     <script>
         window.routeName = "programmes";

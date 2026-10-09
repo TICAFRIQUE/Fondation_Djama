@@ -4,6 +4,10 @@
 Actualités
 @endsection
 
+@section('css')
+    @include('backend.components.datatable-css')
+@endsection
+
 @section('content')
 
 @component('backend.components.breadcrumb')
@@ -11,122 +15,92 @@ Actualités
 @slot('title') Actualités @endslot
 @endcomponent
 
+@include('backend.components.form-errors')
+
 <div class="card">
 
     <div class="card-header d-flex justify-content-between">
-        <h5>Liste des actualités</h5>
+        <h5 class="card-title mb-0">Liste des actualités</h5>
 
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
-            Ajouter
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#myModal">
+            Ajouter une actualité
         </button>
     </div>
 
-    <div class="card-body table-responsive">
+    <div class="card-body">
+        <div class="table-responsive">
 
-        <table class="table table-bordered align-middle">
+            <table id="buttons-datatables" class="display table table-bordered align-middle" style="width:100%">
 
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Image</th>
-                    <th>Titre</th>
-                    <th>Catégorie</th>
-                    <th>Date</th>
-                    <th>Lecture</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Image</th>
+                        <th>Titre</th>
+                        <th>Catégorie</th>
+                        <th>Date</th>
+                        <th>Lecture</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
 
-            <tbody>
+                <tbody>
 
-                @foreach($news as $key => $item)
-                <tr>
+                    @foreach($news as $key => $item)
+                    <tr id="row_{{ $item->id }}">
 
-                    <td>{{ $key+1 }}</td>
+                        <td>{{ $key+1 }}</td>
 
-                    <td>
-                        @if($item->image)
-                        <img src="{{ asset('storage/'.$item->image) }}" width="60">
-                        @endif
-                    </td>
+                        <td>
+                            @if($item->image)
+                            <img src="{{ asset('storage/'.$item->image) }}" width="60" height="40" alt="" loading="lazy">
+                            @else
+                            -
+                            @endif
+                        </td>
 
-                    <td>{{ $item->title }}</td>
+                        <td>
+                            {{ $item->title }}
+                            <div><a href="{{ route('news.show', $item->slug) }}" target="_blank" class="fs-12">Voir sur le site <i class="ri-external-link-line"></i></a></div>
+                        </td>
 
-                    <td>
-                        <span class="badge bg-info">{{ $item->category }}</span>
-                    </td>
+                        <td>
+                            <span class="badge bg-info">{{ $item->category }}</span>
+                        </td>
 
-                    <td>
-                        {{ $item->published_at ? $item->published_at->format('d/m/Y') : '-' }}
-                    </td>
+                        <td data-order="{{ optional($item->published_at)->format('Y-m-d') }}">
+                            {{ $item->published_at ? $item->published_at->format('d/m/Y') : '-' }}
+                        </td>
 
-                    <td>{{ $item->reading_time }} min</td>
+                        <td>{{ $item->reading_time }} min</td>
 
-                    <td>
+                        <td>
+                            @include('backend.components.row-actions', ['modal' => 'myModalEdit' . $item->id, 'id' => $item->id])
+                        </td>
 
-                        <form action="{{ route('news.destroy',$item->id) }}" method="POST">
-                            @csrf
-                            @method('DELETE')
+                    </tr>
+                    @endforeach
 
-                            <button class="btn btn-danger btn-sm">
-                                Supprimer
-                            </button>
-                        </form>
+                </tbody>
 
-                    </td>
+            </table>
 
-                </tr>
-                @endforeach
-
-            </tbody>
-
-        </table>
-
+        </div>
     </div>
 
 </div>
 
-{{-- CREATE MODAL --}}
-<div class="modal fade" id="createModal">
-    <div class="modal-dialog">
-        <form method="POST" action="{{ route('news.store') }}" enctype="multipart/form-data">
-            @csrf
+@include('backend.components.crud-modals', [
+    'items' => $news,
+    'form' => 'backend.pages.news.form',
+    'route' => 'news',
+    'createTitle' => 'Nouvel article',
+    'editTitle' => "Modification de l'article",
+    'files' => true,
+])
 
-            <div class="modal-content">
+@endsection
 
-                <div class="modal-header">
-                    <h5>Nouvel article</h5>
-                    <button class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-
-                    <input class="form-control mb-2" name="title" placeholder="Titre">
-
-                    <textarea class="form-control mb-2" name="content" placeholder="Contenu"></textarea>
-
-                    <input type="file" name="image" class="form-control mb-2">
-
-                    <select name="category" class="form-control mb-2">
-                        <option>Éducation</option>
-                        <option>Santé</option>
-                        <option>Économie</option>
-                    </select>
-
-                    <input type="date" name="published_at" class="form-control mb-2">
-
-                    <input type="number" name="reading_time" class="form-control mb-2" placeholder="Temps de lecture">
-
-                </div>
-
-                <div class="modal-footer">
-                    <button class="btn btn-light" data-bs-dismiss="modal">Fermer</button>
-                    <button class="btn btn-primary">Enregistrer</button>
-                </div>
-
-            </div>
-        </form>
-    </div>
-</div>
-
+@section('script')
+    @include('backend.components.datatable-scripts', ['routeName' => 'news'])
 @endsection

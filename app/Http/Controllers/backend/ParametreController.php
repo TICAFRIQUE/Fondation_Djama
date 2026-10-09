@@ -56,55 +56,45 @@ class ParametreController extends Controller
             // Vérifier si un paramètre existe déjà
             $data_parametre = Parametre::first();
 
+            $fields = [
+                //socials networks link
+                'lien_facebook' => $request['lien_facebook'],
+                'lien_instagram' => $request['lien_instagram'],
+                'lien_twitter' => $request['lien_twitter'],
+                'lien_linkedin' => $request['lien_linkedin'],
+                'lien_tiktok' => $request['lien_tiktok'],
+                'lien_youtube' => $request['lien_youtube'],
+
+                //infos application
+                'nom_projet' => $request['nom_projet'],
+                'slogan' => $request['slogan'],
+                'description_projet' => $request['description_projet'],
+                'contact_principal' => $request['contact_principal'],
+                'contact_secondaire' => $request['contact_secondaire'],
+                'contact_whatsapp' => $request['contact_whatsapp'],
+
+                'email_principal' => $request['email_principal'],
+                'email_secondaire' => $request['email_secondaire'],
+
+                'localisation' => $request['localisation'],
+                'google_maps' => $request['google_maps'],
+                'siege_social' => $request['siege_social'],
+
+                //seo
+                'meta_title' => $request['meta_title'],
+                'meta_description' => $request['meta_description'],
+                'meta_keywords' => $request['meta_keywords'],
+            ];
+
             if ($data_parametre) {
                 // Mettre à jour les données existantes
-                $data_parametre->update([
-                    'lien_facebook' => $request['lien_facebook'],
-                    'lien_instagram' => $request['lien_instagram'],
-                    'lien_twitter' => $request['lien_twitter'],
-                    'lien_linkedin' => $request['lien_linkedin'],
-                    'lien_tiktok' => $request['lien_tiktok'],
-
-                    //infos application
-                    'nom_projet' => $request['nom_projet'],
-                    'description_projet' => $request['description_projet'],
-                    'contact_principal' => $request['contact_principal'],
-                    'contact_secondaire' => $request['contact_secondaire'],
-                    'contact_whatsapp' => $request['contact_whatsapp'],
-
-                    'email_principal' => $request['email_principal'],
-                    'email_secondaire' => $request['email_secondaire'],
-
-                    'localisation' => $request['localisation'],
-                    'google_maps' => $request['google_maps'],
-                    'siege_social' => $request['siege_social'],
-                ]);
+                $data_parametre->update($fields);
 
                 // Recharger l'instance pour avoir les dernières données
                 $data_parametre->refresh();
             } else {
                 // Créer un nouveau paramètre
-                $data_parametre = Parametre::create([
-                    'lien_facebook' => $request['lien_facebook'],
-                    'lien_instagram' => $request['lien_instagram'],
-                    'lien_twitter' => $request['lien_twitter'],
-                    'lien_linkedin' => $request['lien_linkedin'],
-                    'lien_tiktok' => $request['lien_tiktok'],
-
-                    //infos application
-                    'nom_projet' => $request['nom_projet'],
-                    'description_projet' => $request['description_projet'],
-                    'contact_principal' => $request['contact_principal'],
-                    'contact_secondaire' => $request['contact_secondaire'],
-                    'contact_whatsapp' => $request['contact_whatsapp'],
-
-                    'email_principal' => $request['email_principal'],
-                    'email_secondaire' => $request['email_secondaire'],
-
-                    'localisation' => $request['localisation'],
-                    'google_maps' => $request['google_maps'],
-                    'siege_social' => $request['siege_social'],
-                ]);
+                $data_parametre = Parametre::create($fields);
             }
 
             // Gestion des images - logique simplifiée et corrigée

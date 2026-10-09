@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ImageOptimizer;
+use App\Support\Site;
 use App\Models\Projet;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -35,12 +37,12 @@ class ProjetController extends Controller
 
         // upload image
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('projets', 'public');
+            $path = ImageOptimizer::store($request->file('image'), 'projets');
         }
 
         \App\Models\Projet::create([
             'title' => $request->title,
-            'slug' => Str::slug($request->title) . '-' . time(),
+            'slug' => Site::uniqueSlug(Projet::class, $request->title),
             'description' => $request->description,
             'image' => $path,
             'status' => $request->status,
@@ -89,19 +91,20 @@ class ProjetController extends Controller
                 Storage::disk('public')->delete($projet->image);
             }
 
-            $path = $request->file('image')->store('projets', 'public');
+            $path = ImageOptimizer::store($request->file('image'), 'projets');
 
             $projet->image = $path;
         }
 
         // mise à jour des champs
+        // le slug n'est pas modifié : l'adresse publique du projet reste stable
         $projet->title = $request->title;
-        $projet->slug = Str::slug($request->title) . '-' . $projet->id;
         $projet->description = $request->description;
         $projet->status = $request->status;
         $projet->progress = $request->progress ?? 0;
         $projet->date_start = $request->date_start;
         $projet->date_end = $request->date_end;
+        $projet->save();
 
         Alert::success('Opération réussie', 'Le projet a été modifié avec succès');
         return back();

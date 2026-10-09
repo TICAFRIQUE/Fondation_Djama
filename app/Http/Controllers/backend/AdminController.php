@@ -28,12 +28,12 @@ class AdminController extends Controller
                 'password' => ['required'],
             ]);
             if (Auth::attempt($credentials)) {
-                Alert::success('Connexion réussi,  Bienvenue  ' . Auth::user()->first_name, 'Success Message');
+                Alert::success('Connexion réussie', 'Bienvenue ' . Auth::user()->username);
                 return redirect()->route('dashboard.index');
             } else {
                 // Alert::error('Email ou mot de passe incorrect' , 'Error Message');
                 // return back();
-                return back()->withError('Email ou mot de passe incorrect');
+                return back()->withInput($request->only('email'))->withError('Email ou mot de passe incorrect');
             }
         }
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ImageOptimizer;
 use App\Models\Slider;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -46,7 +47,7 @@ class SliderController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('sliders', 'public');
+            $data['image'] = ImageOptimizer::store($request->file('image'), 'sliders');
         }
 
         $data['is_active'] = $request->is_active ?? 1;
@@ -91,7 +92,7 @@ class SliderController extends Controller
             if ($slider->image && Storage::disk('public')->exists($slider->image)) {
                 Storage::disk('public')->delete($slider->image);
             }
-            $data['image'] = $request->file('image')->store('sliders', 'public');
+            $data['image'] = ImageOptimizer::store($request->file('image'), 'sliders');
         }
 
         $data['is_active'] = $request->is_active ?? $slider->is_active;

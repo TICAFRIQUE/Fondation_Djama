@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ImageOptimizer;
+use App\Support\Site;
 use App\Http\Controllers\Controller;
 use App\Models\News;
 use Illuminate\Http\Request;
@@ -35,12 +37,12 @@ class NewsController extends Controller
         $path = null;
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('news', 'public');
+            $path = ImageOptimizer::store($request->file('image'), 'news');
         }
 
         News::create([
             'title' => $request->title,
-            'slug' => Str::slug($request->title) . '-' . time(),
+            'slug' => Site::uniqueSlug(News::class, $request->title),
             'content' => $request->content,
             'image' => $path,
             'category' => $request->category,
@@ -71,12 +73,12 @@ class NewsController extends Controller
                 Storage::disk('public')->delete($news->image);
             }
 
-            $news->image = $request->file('image')->store('news', 'public');
+            $news->image = ImageOptimizer::store($request->file('image'), 'news');
         }
 
+        // le slug n'est pas modifié : l'adresse publique de l'article reste stable
         $news->update([
             'title' => $request->title,
-            'slug' => Str::slug($request->title) . '-' . $news->id,
             'content' => $request->content,
             'category' => $request->category,
             'published_at' => $request->published_at,

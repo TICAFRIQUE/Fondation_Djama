@@ -4,6 +4,11 @@ namespace App\Providers;
 
 use Throwable;
 use App\Models\Parametre;
+use App\Support\SiteContext;
+use Illuminate\Foundation\Http\Events\RequestHandled;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\View;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -16,7 +21,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Données communes du site public, chargées une seule fois par requête
+        $this->app->scoped(SiteContext::class);
     }
 
     /**
@@ -63,5 +69,14 @@ class AppServiceProvider extends ServiceProvider
         view()->share([
             'data_parametre' => $data_parametre ?? null,
         ]);
+
+        // Le site est en français : dates « 9 octobre 2026 » plutôt que « October 9, 2026 »
+        Carbon::setLocale('fr');
+
+        // $site est disponible dans toutes les vues du site public
+        View::composer('frontend.*', fn ($view) => $view->with('site', app(SiteContext::class)));
+
+        // Ses données valent pour une requête : la suivante les relit en base
+        Event::listen(RequestHandled::class, fn () => $this->app->forgetInstance(SiteContext::class));
     }
 }

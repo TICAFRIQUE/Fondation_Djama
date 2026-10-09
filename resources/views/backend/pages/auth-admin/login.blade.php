@@ -1,196 +1,65 @@
 @extends('backend.layouts.master-without-nav')
 @section('title')
-   Login
+   Connexion
 @endsection
 @section('content')
-    @if ($data_parametre != null)
-        <style>
-            .auth-one-bg {
-                background-image: url('{{ $data_parametre->getFirstMediaUrl('cover') }}');
-                background-position: center;
-                background-size: cover;
-            }
-        </style>
-    @else
-        <style>
-            .auth-one-bg {
-                background-image: url(/build/icons/auth-one-bg.jpg);
-                background-position: center;
-                background-size: cover;
-            }
-        </style>
-    @endif
+    @php
+        $site = app(\App\Support\SiteContext::class);
+        // image de couverture choisie dans Paramètres > Informations, sinon simple dégradé aux couleurs de la fondation
+        $cover = $data_parametre?->getFirstMediaUrl('cover');
+    @endphp
 
-
-
-    <div class="auth-page-wrapper pt-5">
-        <!-- auth page bg -->
-        <div class="auth-one-bg-position auth-one-bg" id="auth-particles">
-            <div class="bg-overlay"></div>
-
-            <div class="shape">
-                <svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink"
-                    viewBox="0 0 1440 120">
-                    <path d="M 0,36 C 144,53.6 432,123.2 720,124 C 1008,124.8 1296,56.8 1440,40L1440 140L0 140z"></path>
-                </svg>
+    <div class="adm-login">
+        <section class="adm-login-brand" @if ($cover) style="--adm-login-cover: url('{{ $cover }}')" @endif>
+            <div class="adm-login-brand-inner">
+                <img src="{{ $site->logo() }}" alt="" width="72" height="72" class="adm-login-logo">
+                <h1>{{ $site->name() }}</h1>
+                <p class="adm-login-slogan">« {{ $site->slogan() }} »</p>
+                <p class="adm-login-text">{{ \Illuminate\Support\Str::limit($site->description(), 220) }}</p>
             </div>
-        </div>
+            <a href="{{ route('index') }}" class="adm-login-site"><i class="ri-arrow-left-line"></i> Retour au site</a>
+        </section>
 
-        <!-- auth page content -->
-        <div class="auth-page-content">
-            <div class="container">
-                <div class="row">
-                    <div class="col-lg-12">
-                        <div class="text-center mt-sm-5 mb-4 text-white-50">
-                            <div>
+        <main class="adm-login-panel">
+            <div class="adm-login-card">
+                <div class="adm-login-card-head">
+                    <span class="adm-login-badge"><i class="ri-shield-keyhole-line"></i> Espace d'administration</span>
+                    <h2>Bienvenue !</h2>
+                    <p class="text-muted mb-0">Connectez-vous pour gérer le site.</p>
+                </div>
 
-                                @if ($data_parametre != null)
-                                    <a href="index" class="d-inline-block auth-logo">
-                                        <img src="{{ URL::asset($data_parametre?->getFirstMediaUrl('logo_header')) }}"
-                                            alt=""  width="50" class="rounded-circle">
-                                    </a>
-                                    <p class="mt-3 fs-15 fw-medium"> {{ $data_parametre['nom_projet'] ?? '' }} </p>
-                                @else
-                                    <h3>Nom du projet</h3>
-                                @endif
+                @include('backend.components.alertMessage')
 
-                            </div>
-                            <p class="mt-3 fs-15 fw-medium"> {{ $data_parametre['description_projet'] ?? '' }} </p>
+                <form action="{{ route('admin.login') }}" method="post" class="needs-validation" novalidate>
+                    @csrf
+
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Email</label>
+                        <div class="adm-input-icon">
+                            <i class="ri-mail-line"></i>
+                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" id="username"
+                                value="{{ old('email') }}" placeholder="Entrer votre email" autocomplete="username" required autofocus>
                         </div>
                     </div>
-                </div>
-                <!-- end row -->
 
-                <div class="row justify-content-center">
-                    <div class="col-md-8 col-lg-6 col-xl-5">
-                        <div class="card mt-4">
-                            @include('backend.components.alertMessage')
-                            <div class="card-body p-4">
-                                <div class="text-center mt-2">
-                                    <h5 class="text-primary">Bienvenue !</h5>
-                                    <p class="text-muted">Connectez vous pour continuer.</p>
-                                </div>
-                                <div class="p-2 mt-4">
-                                    <form action="{{ route('admin.login') }}" method="post" class="needs-validation"
-                                        novalidate>
-                                        @csrf
-                                        <div class="mb-3">
-                                            <label for="username" class="form-label">Email</label>
-                                            <input type="email" name="email" class="form-control" id="username"
-                                                placeholder="Entrer votre email" required>
-                                        </div>
-
-                                        <div class="mb-3">
-                                            {{-- <div class="float-end">
-                                                <a href="auth-pass-reset-basic" class="text-muted">Forgot
-                                                    password?</a>
-                                            </div> --}}
-                                            <label class="form-label" for="password-input">Mot de passe</label>
-                                            <div class="position-relative auth-pass-inputgroup mb-3">
-                                                <input type="password" name="password"
-                                                    class="form-control pe-5 password-input" placeholder="Entrer votre mot de passe"
-                                                    id="password-input" required>
-                                                <button
-                                                    class="btn btn-link position-absolute end-0 top-0 text-decoration-none text-muted password-addon material-shadow-none"
-                                                    type="button" id="password-addon"><i
-                                                        class="ri-eye-fill align-middle"></i></button>
-                                            </div>
-                                        </div>
-
-                                        {{-- <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" value=""
-                                                id="auth-remember-check">
-                                            <label class="form-check-label" for="auth-remember-check">Remember me</label>
-                                        </div> --}}
-
-                                        <div class="mt-4">
-                                            <button class="btn btn-success w-100" type="submit">Connexion</button>
-                                        </div>
-
-                                        {{-- <div class="mt-4 text-center">
-                                            <div class="signin-other-title">
-                                                <h5 class="fs-13 mb-4 title">Sign In with</h5>
-                                            </div>
-                                            <div>
-                                                <button type="button"
-                                                    class="btn btn-primary btn-icon waves-effect waves-light"><i
-                                                        class="ri-facebook-fill fs-16"></i></button>
-                                                <button type="button"
-                                                    class="btn btn-danger btn-icon waves-effect waves-light"><i
-                                                        class="ri-google-fill fs-16"></i></button>
-                                                <button type="button"
-                                                    class="btn btn-dark btn-icon waves-effect waves-light"><i
-                                                        class="ri-github-fill fs-16"></i></button>
-                                                <button type="button"
-                                                    class="btn btn-info btn-icon waves-effect waves-light"><i
-                                                        class="ri-twitter-fill fs-16"></i></button>
-                                            </div>
-                                        </div> --}}
-                                    </form>
-                                </div>
-                            </div>
-                            <!-- end card body -->
-                        </div>
-                        <!-- end card -->
-
-                        {{-- <div class="mt-4 text-center">
-                            <p class="mb-0">Don't have an account ? <a href="auth-signup-basic"
-                                    class="fw-semibold text-primary text-decoration-underline"> Signup </a> </p>
-                        </div> --}}
-
-                    </div>
-                </div>
-                <!-- end row -->
-            </div>
-            <!-- end container -->
-        </div>
-        <!-- end auth page content -->
-
-        <!-- footer -->
-        <footer class="footer">
-            <div class="container">
-                <div class="row">
-                    <div class="col-lg-12">
-                        <div class="text-center">
-                            <script>
-                                document.write(new Date().getFullYear())
-                            </script> {{ config('app.name') }}. Conçu avec <i
-                                class="mdi mdi-heart text-danger"></i> par
-                            {{ config('app.name') }}</p>
+                    <div class="mb-4">
+                        <label class="form-label" for="password-input">Mot de passe</label>
+                        <div class="adm-input-icon">
+                            <i class="ri-lock-2-line"></i>
+                            <input type="password" name="password" class="form-control pe-5 password-input @error('password') is-invalid @enderror"
+                                placeholder="Entrer votre mot de passe" id="password-input" autocomplete="current-password" required>
+                            <button class="adm-password-toggle password-addon" type="button" id="password-addon"
+                                aria-label="Afficher ou masquer le mot de passe"><i class="ri-eye-line"></i></button>
                         </div>
                     </div>
-                </div>
+
+                    <button class="btn btn-primary w-100 adm-login-submit" type="submit">
+                        Connexion <i class="ri-arrow-right-line"></i>
+                    </button>
+                </form>
             </div>
-        </footer>
-        <!-- end Footer -->
+
+            <p class="adm-login-foot">© {{ date('Y') }} {{ $site->name() }}</p>
+        </main>
     </div>
-    <!-- end auth-page-wrapper -->
-@endsection
-@section('script')
-    <script src="{{ URL::asset('build/libs/particles.js/particles.js') }}"></script>
-    <script src="{{ URL::asset('build/js/pages/particles.app.js') }}"></script>
-    <script src="{{ URL::asset('build/js/pages/password-addon.init.js') }}"></script>
-
-
-    <script>
-        // Example starter JavaScript for disabling form submissions if there are invalid fields
-        (() => {
-            'use strict'
-
-            // Fetch all the forms we want to apply custom Bootstrap validation styles to
-            const forms = document.querySelectorAll('.needs-validation')
-
-            // Loop over them and prevent submission
-            Array.from(forms).forEach(form => {
-                form.addEventListener('submit', event => {
-                    if (!form.checkValidity()) {
-                        event.preventDefault()
-                        event.stopPropagation()
-                    }
-
-                    form.classList.add('was-validated')
-                }, false)
-            })
-        })()
-    </script>
 @endsection

@@ -2,147 +2,88 @@
 @section('title')
     Tableau de bord
 @endsection
-@section('css')
-    <link href="{{ URL::asset('build/libs/jsvectormap/css/jsvectormap.min.css') }}" rel="stylesheet" type="text/css" />
-    <link href="{{ URL::asset('build/libs/swiper/swiper-bundle.min.css') }}" rel="stylesheet" type="text/css" />
-@endsection
 @section('content')
-    <div class="row">
-        <div class="col">
-
-            <div class="h-100">
-                <div class="row mb-3 pb-1">
-                    <div class="col-12">
-                        <div class="d-flex align-items-lg-center flex-lg-row flex-column">
-                            <div class="flex-grow-1">
-                               @auth
-                               <h4 class="fs-16 mb-1">Bonjour, {{ Auth::user()->username }} !</h4>
-                               @endauth
-                                <p class="text-muted mb-0">Voici ce qui se passe avec votre restaurant aujourd'hui.</p>
-                            </div>
-                            <div class="mt-3 mt-lg-0">
-                                <form action="javascript:void(0);">
-                                    <div class="row g-3 mb-0 align-items-center">
-                                        <div class="col-sm-auto">
-                                            <div class="input-group input-group-lg">
-                                                <input type="text"
-                                                    class="form-control border-0 minimal-border shadow fs-5" id="horloge"
-                                                    readonly>
-                                                <input type="text"
-                                                    class="form-control border-0 minimal-border shadow fs-5" id="date"
-                                                    readonly>
-                                                <div class="input-group-text bg-primary border-primary text-white">
-                                                    <i class="ri-time-line me-2"></i>
-                                                    <i class="ri-calendar-line"></i>
-                                                </div>
-                                            </div>
-                                            <script>
-                                                function mettreAJourHorloge() {
-                                                    var maintenant = new Date();
-                                                    var heures = maintenant.getHours().toString().padStart(2, '0');
-                                                    var minutes = maintenant.getMinutes().toString().padStart(2, '0');
-                                                    var secondes = maintenant.getSeconds().toString().padStart(2, '0');
-                                                    document.getElementById('horloge').value = heures + ':' + minutes + ':' + secondes;
-
-                                                    var options = {
-                                                        weekday: 'long',
-                                                        year: 'numeric',
-                                                        month: 'long',
-                                                        day: 'numeric'
-                                                    };
-                                                    var dateEnFrancais = maintenant.toLocaleDateString('fr-FR', options);
-                                                    document.getElementById('date').value = dateEnFrancais;
-                                                }
-
-                                                setInterval(mettreAJourHorloge, 1000);
-                                                mettreAJourHorloge(); // Appel initial pour afficher l'heure et la date immédiatement
-                                            </script>
-                                        </div>
-                                        <!--end col-->
-
-                                        <!--end col-->
-                                    </div>
-                                    <!--end row-->
-                                </form>
-                            </div>
-                        </div><!-- end card header -->
-                    </div>
-                    <!--end col-->
-                </div>
-                <!--end row-->
-
-
-            </div> <!-- end .h-100-->
-
-        </div> <!-- end col -->
-
-
+    <div class="adm-welcome">
+        <div>
+            @auth
+                <h1 class="adm-welcome-title">Bonjour, {{ Auth::user()->username }} !</h1>
+            @endauth
+            <p class="mb-0">Voici l'activité du site de la fondation.</p>
+        </div>
+        <div class="adm-clock">
+            <i class="ri-time-line"></i>
+            <span id="horloge"></span>
+            <span class="adm-clock-date" id="date"></span>
+        </div>
     </div>
+
+    <div class="row g-3 mb-3">
+        @foreach ($stats as $stat)
+            <div class="col-xl-2 col-md-4 col-6">
+                <a href="{{ route($stat['route']) }}" class="adm-stat">
+                    <span class="adm-stat-icon"><i class="{{ $stat['icon'] }}"></i></span>
+                    <span class="adm-stat-value">{{ $stat['value'] }}</span>
+                    <span class="adm-stat-label">{{ $stat['label'] }}</span>
+                </a>
+            </div>
+        @endforeach
+    </div>
+    <!--end row-->
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Derniers messages reçus</h5>
+                    <a href="{{ route('messages.index') }}" class="btn btn-soft-primary btn-sm">Tout voir</a>
+                </div>
+                <div class="card-body">
+                    @forelse ($lastMessages as $message)
+                        <div class="d-flex justify-content-between gap-3 py-2 {{ $loop->last ? '' : 'border-bottom' }}">
+                            <div>
+                                <strong>{{ $message->name }}</strong> — {{ $message->subject }}
+                                <div class="text-muted">{{ \Illuminate\Support\Str::limit($message->message, 120) }}</div>
+                            </div>
+                            <small class="text-muted text-nowrap">{{ $message->created_at->format('d/m/Y H:i') }}</small>
+                        </div>
+                    @empty
+                        <p class="text-muted mb-0">Aucun message pour le moment.</p>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Raccourcis</h5>
+                </div>
+                <div class="card-body d-grid gap-2">
+                    <a href="{{ route('news.index') }}" class="adm-shortcut"><i class="ri-newspaper-line"></i> Publier une actualité</a>
+                    <a href="{{ route('flash-infos.index') }}" class="adm-shortcut"><i class="ri-megaphone-line"></i> Diffuser une info flash</a>
+                    <a href="{{ route('galerie.index') }}" class="adm-shortcut"><i class="ri-image-add-line"></i> Ajouter une photo</a>
+                    <a href="{{ route('sections.index') }}" class="adm-shortcut"><i class="ri-layout-row-line"></i> Organiser la page d'accueil</a>
+                    <a href="{{ route('parametre.index') }}" class="adm-shortcut"><i class="ri-settings-3-line"></i> Coordonnées et référencement</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--end row-->
 @endsection
 @section('script')
-    <!-- apexcharts -->
-    <script src="{{ URL::asset('build/libs/apexcharts/apexcharts.min.js') }}"></script>
-    <script src="{{ URL::asset('build/libs/jsvectormap/js/jsvectormap.min.js') }}"></script>
-    <script src="{{ URL::asset('build/libs/jsvectormap/maps/world-merc.js') }}"></script>
-    <script src="{{ URL::asset('build/libs/swiper/swiper-bundle.min.js') }}"></script>
-    <!-- dashboard init -->
-    <script src="{{ URL::asset('build/js/pages/dashboard-ecommerce.init.js') }}"></script>
-    <script src="{{ URL::asset('build/js/app.js') }}"></script>
+    <script>
+        function mettreAJourHorloge() {
+            var maintenant = new Date();
+            document.getElementById('horloge').textContent = maintenant.toLocaleTimeString('fr-FR');
+            document.getElementById('date').textContent = maintenant.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
 
-
-
-
-    {{-- <script>
-        var options = {
-            series: [{
-                name: "Revenu",
-                data: @json($data)
-            }],
-            chart: {
-                type: 'bar',
-                height: 350
-            },
-            xaxis: {
-                categories: @json($labels)
-            }
-        };
-
-        var chart = new ApexCharts(document.querySelector("#revenuChart"), options);
-        chart.render();
-    </script> --}}
-
-
-    {{-- <script>
-        var options = {
-            series: [{
-                name: "Revenu",
-                data: @json($data)
-            }],
-            chart: {
-                type: 'bar', // Changer 'line' en 'bar'
-                height: 350
-            },
-            // plotOptions: {
-            //     bar: {
-            //         borderRadius: 4,
-            //         borderRadiusApplication: 'end',
-            //         horizontal: true,
-            //     }
-            // },
-            xaxis: {
-                categories: @json($labels), // Affichage des mois en texte
-                title: {
-                    text: "Mois"
-                }
-            },
-            yaxis: {
-                title: {
-                    text: "Revenu"
-                }
-            }
-        };
-
-        var chart = new ApexCharts(document.querySelector("#revenuChart"), options);
-        chart.render();
-    </script> --}}
+        setInterval(mettreAJourHorloge, 1000);
+        mettreAJourHorloge(); // Appel initial pour afficher l'heure et la date immédiatement
+    </script>
 @endsection

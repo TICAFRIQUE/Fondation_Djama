@@ -22,9 +22,11 @@ class Parametre extends Model implements HasMedia
         'lien_twitter',
         'lien_linkedin',
         'lien_tiktok',
+        'lien_youtube',
 
         //infos application
         'nom_projet', //nom du projet || nom de l'entreprise
+        'slogan',
         'description_projet', //description du projet
         'contact_principal',
         'contact_secondaire',
@@ -34,6 +36,11 @@ class Parametre extends Model implements HasMedia
         'localisation',
         'google_maps',
         'siege_social',
+
+        //seo
+        'meta_title',
+        'meta_description',
+        'meta_keywords',
 
         //security
         'mode_maintenance',

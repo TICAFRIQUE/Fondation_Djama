@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
+use App\Support\Site;
 
 class Realisation extends Model
 {
@@ -17,12 +17,17 @@ class Realisation extends Model
         'order'
     ];
 
+    protected $casts = [
+        'date_start' => 'date',
+        'date_end' => 'date',
+    ];
+
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($model) {
-            $model->slug = Str::slug($model->title . '-' . time());
+            $model->slug = Site::uniqueSlug(static::class, $model->title);
         });
     }
 }

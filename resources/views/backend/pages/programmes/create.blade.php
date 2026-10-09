@@ -54,6 +54,20 @@
                                         id="color_text" value="{{ old('color_text', '#ffffff') }}">
                                 </div>
 
+                                <div class="col-md-6">
+                                    <label for="order" class="form-label">Ordre</label>
+                                    <input type="number" name="order" class="form-control" id="order" min="0"
+                                        placeholder="Automatique">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="is_active" class="form-label">Statut</label>
+                                    <select name="is_active" class="form-control" id="is_active">
+                                        <option value="1">Actif</option>
+                                        <option value="0">Inactif</option>
+                                    </select>
+                                </div>
+
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fermer</button>
                                     <button type="submit" class="btn btn-primary">Créer</button>

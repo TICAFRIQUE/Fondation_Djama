@@ -1,244 +1,142 @@
-<!DOCTYPE html>
-<html lang="fr">
+{{-- PAGE DÉTAIL : actualité, action (réalisation), projet ou programme --}}
+@extends('frontend.layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $data->title }} | Association Djama</title>
+@php
+  $config = [
+      'news' => ['label' => 'Actualités', 'list' => route('news.all'), 'related' => 'À lire aussi'],
+      'realisation' => ['label' => 'Actions', 'list' => route('realisations.all'), 'related' => 'Autres actions'],
+      'projet' => ['label' => 'Projets', 'list' => route('projets.all'), 'related' => 'Autres projets'],
+      'programme' => ['label' => 'Programmes', 'list' => route('apropos') . '#programmes', 'related' => 'Nos autres programmes'],
+  ][$type];
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+  $body = $data->content ?? $data->description;
+  $summary = \App\Support\Site::excerpt($body, 160);
+  $image = \App\Support\Site::image($data->image);
+  $published = $data->published_at ?? $data->created_at;
+  $shareUrl = urlencode(url()->current());
+  $shareText = urlencode($data->title);
 
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+  // Données structurées : un article pour les actualités, pour que Google affiche date et image
+  $article = $type === 'news' ? array_filter([
+      '@context' => 'https://schema.org',
+      '@type' => 'NewsArticle',
+      'headline' => \Illuminate\Support\Str::limit($data->title, 110, ''),
+      'description' => $summary,
+      'image' => $image ? [$image] : null,
+      'datePublished' => $published?->toAtomString(),
+      'dateModified' => $data->updated_at?->toAtomString(),
+      'articleSection' => $data->category,
+      'mainEntityOfPage' => url()->current(),
+      'author' => ['@type' => 'Organization', 'name' => $site->name(), 'url' => route('index')],
+      'publisher' => ['@type' => 'Organization', 'name' => $site->name(), 'logo' => ['@type' => 'ImageObject', 'url' => url($site->logo())]],
+  ]) : null;
+@endphp
 
-        :root {
-            --djama-blue: #1F4E79;
-            --djama-orange: #F47C20;
-            --djama-green: #43A047;
-            --djama-dark: #0D2B45;
-            --bg-subtle: #f4f8fc;
-        }
+@section('title', $data->title)
+@section('meta_description', $summary)
+@section('og_type', $type === 'news' ? 'article' : 'website')
+@if ($image)
+  @section('og_image', $image)
+@endif
 
-        body {
-            background: var(--bg-subtle);
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: #475569;
-        }
+@if ($article)
+  @push('jsonld')
+  <script type="application/ld+json">{!! json_encode($article, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) !!}</script>
+  @endpush
+@endif
 
-        /* HERO */
-        .hero {
-            position: relative;
-            height: 420px;
-            border-radius: 30px;
-            overflow: hidden;
-            margin-bottom: 40px;
-        }
+@section('content')
+  @include('frontend.partials.page-hero', [
+      'title' => $data->title,
+      'crumbs' => [['label' => $config['label'], 'url' => $config['list']]],
+  ])
 
-        .hero img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+  <div class="section-pad">
+    <div class="container">
+      <div class="row g-4 g-lg-5">
 
-        .hero-overlay {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to top, rgba(13, 43, 69, 0.85), rgba(13, 43, 69, 0.2));
-            display: flex;
-            align-items: flex-end;
-            padding: 40px;
-        }
+        <article class="col-lg-8">
+          @if ($image)
+          <figure class="article-cover">
+            <img src="{{ $image }}" alt="{{ $data->title }}" fetchpriority="high" decoding="async" width="1200" height="675">
+          </figure>
+          @endif
 
-        .hero-title {
-            color: #fff;
-            font-weight: 800;
-            font-size: clamp(2rem, 5vw, 3rem);
-        }
+          <div class="article-content">
+            {{ \App\Support\Site::rich($body) }}
+          </div>
+        </article>
 
-        /* BADGE */
-        .badge-dynamic {
-            padding: 8px 16px;
-            border-radius: 50px;
-            font-weight: 700;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-        }
+        <aside class="col-lg-4">
+          <div class="article-aside">
+            <h2 class="article-aside-title">Informations</h2>
 
-        .type-news {
-            background: rgba(31, 78, 121, 0.15);
-            color: var(--djama-blue);
-        }
+            <dl class="article-facts">
+              @if ($type === 'news')
+              @if ($data->category)
+              <div><dt>Rubrique</dt><dd>{{ $data->category }}</dd></div>
+              @endif
+              <div><dt>Publication</dt><dd><time datetime="{{ $published->toDateString() }}">{{ $published->translatedFormat('j F Y') }}</time></dd></div>
+              @if ($data->reading_time)
+              <div><dt>Lecture</dt><dd>{{ $data->reading_time }} min</dd></div>
+              @endif
+              @endif
 
-        .type-realisation {
-            background: rgba(67, 160, 71, 0.15);
-            color: var(--djama-green);
-        }
+              @if (in_array($type, ['realisation', 'projet']) && $data->date_start)
+              <div>
+                <dt>Période</dt>
+                <dd>
+                  {{ $data->date_start->translatedFormat('F Y') }}
+                  @if ($data->date_end) — {{ $data->date_end->translatedFormat('F Y') }} @endif
+                </dd>
+              </div>
+              @endif
 
-        .type-projet {
-            background: rgba(244, 124, 32, 0.15);
-            color: var(--djama-orange);
-        }
+              @if ($type === 'projet')
+              <div><dt>Statut</dt><dd><span class="card-badge" style="{{ $data->status_style }}">{{ $data->status_label }}</span></dd></div>
+              @if ($data->status !== 'bientot')
+              <div>
+                <dt>Avancement</dt>
+                <dd>
+                  <div class="projet-progress" role="progressbar" aria-label="Avancement du projet" aria-valuenow="{{ (int) $data->progress }}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="projet-progress-bar" style="width:{{ min(100, max(0, (int) $data->progress)) }}%"></div>
+                  </div>
+                  <div class="projet-progress-label">{{ (int) $data->progress }} %</div>
+                </dd>
+              </div>
+              @endif
+              @endif
+            </dl>
 
-        /* CONTENT */
-        .content-card {
-            background: #fff;
-            padding: 45px;
-            border-radius: 25px;
-            border: 1px solid #e2e8f0;
-            line-height: 1.9;
-            font-size: 1.05rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
-        }
-
-        /* SIDEBAR */
-        .sidebar-info {
-            background: #fff;
-            padding: 30px;
-            border-radius: 25px;
-            border: 1px solid #e2e8f0;
-            position: sticky;
-            top: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-        }
-
-        .info-block {
-            margin-bottom: 25px;
-        }
-
-        .info-label {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            color: #94a3b8;
-            font-weight: 700;
-        }
-
-        .info-value {
-            font-weight: 700;
-            color: var(--djama-dark);
-        }
-
-        /* BUTTON */
-        .btn-back {
-            background: var(--djama-dark);
-            color: #fff;
-            padding: 14px;
-            border-radius: 14px;
-            width: 100%;
-            text-align: center;
-            font-weight: 600;
-            text-decoration: none;
-            transition: 0.3s;
-        }
-
-        .btn-back:hover {
-            background: var(--djama-blue);
-            transform: translateY(-3px);
-        }
-
-        /* SHARE */
-        .share-btn {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            border: none;
-            background: #f1f5f9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: 0.3s;
-        }
-
-        .share-btn:hover {
-            background: var(--djama-blue);
-            color: #fff;
-        }
-    </style>
-</head>
-
-<body>
-
-    <div class="container py-5">
-
-        <div class="mb-4">
-            <a href="{{ route('index') }}" class="text-decoration-none text-muted small fw-bold">
-                <i class="ri-arrow-left-line"></i> Accueil / {{ ucfirst($type) }}
-            </a>
-        </div>
-
-        <div class="row g-5">
-
-            {{-- LEFT --}}
-            <div class="col-lg-8">
-
-                <span class="badge-dynamic type-{{ $type }}">
-                    {{ $type == 'news' ? ($data->category ?? 'Actualité') : ucfirst($type) }}
-                </span>
-
-                {{-- HERO IMAGE --}}
-                <div class="hero mt-3">
-                    <img src="{{ asset('storage/'.$data->image) }}">
-                    <div class="hero-overlay">
-                        <h1 class="hero-title">{{ $data->title }}</h1>
-                    </div>
-                </div>
-
-                {{-- CONTENT --}}
-                <div class="content-card">
-                    {!! nl2br(e($data->content ?? $data->description)) !!}
-                </div>
-
+            <div class="article-share">
+              <div class="article-share-label">Partager</div>
+              <div class="d-flex flex-wrap gap-2">
+                <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u={{ $shareUrl }}" target="_blank" rel="noopener" aria-label="Partager sur Facebook"><i class="bi bi-facebook" aria-hidden="true"></i></a>
+                <a class="share-btn" href="https://wa.me/?text={{ $shareText }}%20{{ $shareUrl }}" target="_blank" rel="noopener" aria-label="Partager sur WhatsApp"><i class="bi bi-whatsapp" aria-hidden="true"></i></a>
+                <a class="share-btn" href="https://twitter.com/intent/tweet?text={{ $shareText }}&url={{ $shareUrl }}" target="_blank" rel="noopener" aria-label="Partager sur X"><i class="bi bi-twitter-x" aria-hidden="true"></i></a>
+                <button type="button" class="share-btn" data-copy-link="{{ url()->current() }}" aria-label="Copier le lien"><i class="bi bi-link-45deg" aria-hidden="true"></i></button>
+              </div>
             </div>
 
-            {{-- RIGHT --}}
-            <div class="col-lg-4">
+            <a href="{{ route('don') }}" class="btn btn-don w-100 mt-4"><i class="bi bi-heart-fill me-2" aria-hidden="true"></i>Soutenir la fondation</a>
+            <a href="{{ $config['list'] }}" class="btn-more mt-3"><i class="bi bi-arrow-left" aria-hidden="true"></i> Retour : {{ $config['label'] }}</a>
+          </div>
+        </aside>
 
-                <div class="sidebar-info">
+      </div>
 
-                    <h5 class="fw-bold mb-4 text-dark">Informations</h5>
-
-                    @if($type == 'news')
-                    <div class="info-block">
-                        <div class="info-label">Publication</div>
-                        <div class="info-value">
-                            <i class="ri-calendar-line"></i>
-                            {{ optional($data->published_at)->format('d M Y') }}
-                        </div>
-                    </div>
-                    @endif
-
-                    @if($type == 'realisation' || $type == 'projet')
-                    <div class="info-block">
-                        <div class="info-label">Période</div>
-                        <div class="info-value">
-                            {{ optional($data->date_start)->format('Y') }} -
-                            {{ optional($data->date_end)->format('Y') }}
-                        </div>
-                    </div>
-                    @endif
-
-                    <div class="info-block">
-                        <div class="info-label">Partager</div>
-                        <div class="d-flex gap-2 mt-2">
-                            <button class="share-btn"><i class="ri-facebook-fill"></i></button>
-                            <button class="share-btn"><i class="ri-whatsapp-line"></i></button>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <a href="{{ route('index') }}" class="btn-back">
-                        <i class="ri-home-4-line"></i> Retour au site
-                    </a>
-
-                </div>
-
-            </div>
-
+      @if ($related->isNotEmpty())
+      <section class="related-block" aria-labelledby="related-title">
+        <h2 class="section-title" id="related-title">{{ $config['related'] }}</h2>
+        <div class="row g-4">
+          @foreach ($related as $item)
+          <div class="col-md-6 col-lg-4">
+            @include('frontend.partials.card')
+          </div>
+          @endforeach
         </div>
-
+      </section>
+      @endif
     </div>
-
-</body>
-
-</html>
+  </div>
+@endsection

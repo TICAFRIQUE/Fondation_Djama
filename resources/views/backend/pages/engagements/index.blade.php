@@ -7,9 +7,10 @@
 <div class="container-fluid">
 
     <!-- HEADER -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0">🤝 Engagements reçus</h4>
-    </div>
+    @component('backend.components.breadcrumb')
+        @slot('li_1') Communication @endslot
+        @slot('title') Engagements reçus @endslot
+    @endcomponent
 
     <!-- CARD -->
     <div class="card border-0 shadow-sm">
@@ -39,18 +40,23 @@
 
                             <!-- TYPE -->
                             <td>
+                                {{-- les types enregistrés par le site sont ceux des cartes « Agir » (donation, sponsorship...) --}}
                                 @switch($item->type)
+                                    @case('donation')
                                     @case('don')
-                                        <span class="badge bg-warning text-dark">💰 Don</span>
+                                        <span class="badge bg-warning">💰 Don</span>
                                         @break
+                                    @case('sponsorship')
                                     @case('parrainage')
                                         <span class="badge bg-success">👧 Parrainage</span>
                                         @break
+                                    @case('volunteer')
                                     @case('benevolat')
-                                        <span class="badge bg-primary">🤝 Bénévole</span>
+                                        <span class="badge bg-info">🤝 Bénévole</span>
                                         @break
+                                    @case('partner')
                                     @case('partenariat')
-                                        <span class="badge bg-dark">🏢 Partenaire</span>
+                                        <span class="badge bg-secondary">🏢 Partenaire</span>
                                         @break
                                     @default
                                         <span class="badge bg-secondary">{{ $item->type }}</span>
@@ -91,8 +97,7 @@
                                 <!-- DELETE -->
                                 <form action="{{ route('engagements.destroy', $item->id) }}"
                                       method="POST"
-                                      class="d-inline"
-                                      onsubmit="return confirm('Supprimer cet engagement ?')">
+                                      class="d-inline">
                                     @csrf
                                     @method('DELETE')
 

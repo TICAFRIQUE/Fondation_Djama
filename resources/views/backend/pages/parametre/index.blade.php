@@ -504,6 +504,66 @@
                                     </div>
                                     <!--end col-->
 
+                                    <div class="col-lg-12">
+                                        <div class="form-group mb-3">
+                                            <label for="slogan" class="form-label">
+                                                <i class="ri-double-quotes-l me-1"></i>
+                                                Slogan
+                                            </label>
+                                            <input type="text" name="slogan" class="form-control" id="slogan"
+                                                value="{{ $data_parametre['slogan'] ?? '' }}"
+                                                maxlength="255"
+                                                placeholder="Offrir l'éducation, construire l'avenir">
+                                            <small class="text-muted">Affiché dans le pied de page du site</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 mt-4">
+                                        <h5 class="text-primary mb-3">
+                                            <i class="ri-search-eye-line me-2"></i>
+                                            Référencement (SEO)
+                                        </h5>
+                                    </div>
+
+                                    <div class="col-lg-5">
+                                        <div class="form-group mb-3">
+                                            <label for="meta_title" class="form-label">
+                                                <i class="ri-heading me-1"></i>
+                                                Titre de la page d'accueil (Google)
+                                            </label>
+                                            <input type="text" name="meta_title" class="form-control" id="meta_title"
+                                                value="{{ $data_parametre['meta_title'] ?? '' }}"
+                                                maxlength="70"
+                                                placeholder="Fondation Djama Éducation — Offrir l'éducation, construire l'avenir">
+                                            <small class="text-muted">60 caractères conseillés. Vide = nom + slogan</small>
+                                        </div>
+                                        <div class="form-group mb-3">
+                                            <label for="meta_keywords" class="form-label">
+                                                <i class="ri-price-tag-3-line me-1"></i>
+                                                Mots-clés
+                                            </label>
+                                            <input type="text" name="meta_keywords" class="form-control" id="meta_keywords"
+                                                value="{{ $data_parametre['meta_keywords'] ?? '' }}"
+                                                maxlength="500"
+                                                placeholder="fondation, éducation, Côte d'Ivoire, scolarisation des filles">
+                                            <small class="text-muted">Séparés par des virgules</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-lg-7">
+                                        <div class="form-group mb-3">
+                                            <label for="meta_description" class="form-label">
+                                                <i class="ri-file-search-line me-1"></i>
+                                                Description affichée dans Google
+                                            </label>
+                                            <textarea name="meta_description" class="form-control" id="meta_description"
+                                                rows="5"
+                                                maxlength="300"
+                                                placeholder="Résumé de la fondation qui apparaît sous le titre dans les résultats de recherche...">{{ $data_parametre['meta_description'] ?? '' }}</textarea>
+                                            <small class="text-muted">150 à 160 caractères conseillés. Vide = description du projet</small>
+                                        </div>
+                                    </div>
+
                                     <div class="col-12 mt-4">
                                         <h5 class="text-primary mb-3">
                                             <i class="ri-phone-line me-2"></i>
@@ -742,6 +802,25 @@
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <div class="col-lg-6">
+                                            <div class="social-input-group form-group">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar-xs d-block flex-shrink-0 me-3">
+                                                        <span class="avatar-title rounded-circle fs-16" style="background: #ff0000; color: white;">
+                                                            <i class="ri-youtube-fill"></i>
+                                                        </span>
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <label class="form-label mb-1 fw-bold">YouTube</label>
+                                                        <input type="url" name="lien_youtube" class="form-control"
+                                                            value="{{ $data_parametre['lien_youtube'] ?? '' }}"
+                                                            placeholder="https://youtube.com/@votre-chaine">
+                                                        <div class="error-message">URL YouTube invalide</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                     <!-- ========== End social network ========== -->
 
@@ -898,7 +977,6 @@
 @endsection
 @section('script')
     <script src="{{ URL::asset('build/js/pages/profile-setting.init.js') }}"></script>
-    <script src="{{ URL::asset('build/js/app.js') }}"></script>
 
     <script>
         $(document).ready(function() {

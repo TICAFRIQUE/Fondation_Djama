@@ -25,5 +25,11 @@ class DatabaseSeeder extends Seeder
         $this->call(PermissionsTableSeeder::class);
         $this->call(AgirsPermissionsSeeder::class);
         $this->call(ModelHasRolesTableSeeder::class);
+
+        // Écrans d'admin du site (permissions), contenus par défaut du site public,
+        // puis contenus d'exemple pour les rubriques encore vides
+        $this->call(SiteModulesSeeder::class);
+        $this->call(SiteContentSeeder::class);
+        $this->call(SiteExampleSeeder::class);
     }
 }
