@@ -53,17 +53,21 @@ class AppServiceProvider extends ServiceProvider
                         $superadminRole->permissions()->sync($permissions);
                     }
                 }
-            } catch (\Exception $e) {
-                // Optionnel : log de l'erreur si besoin
-                return back()->withErrors('Une erreur est survenue lors de la synchronisation des permissions.', 'Message d\'erreur:' . $e->getMessage());
+            } catch (Throwable $e) {
+                // Base injoignable (installation, déploiement, intégration continue) :
+                // les commandes artisan doivent rester utilisables, la synchronisation se fera à la prochaine requête
             }
         });
 
 
 
         //recuperer les parametres
-        if (Schema::hasTable('parametres')) {
-            $data_parametre = Parametre::with('media')->first();
+        try {
+            if (Schema::hasTable('parametres')) {
+                $data_parametre = Parametre::with('media')->first();
+            }
+        } catch (Throwable $e) {
+            // Même raison : sans base, « composer install » et « php artisan ... » plantaient au démarrage
         }
 
         view()->share([
