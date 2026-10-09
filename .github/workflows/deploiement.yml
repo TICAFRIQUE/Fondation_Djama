@@ -1,13 +1,9 @@
 name: Déploiement
 
-# Push sur main : les tests seulement, RIEN n'est envoyé sur le serveur.
-# Bouton « Run workflow » (onglet Actions) : tests, puis envoi du code et de vendor/
-# (sans les paquets de dev) en rsync sur le serveur, migrations et caches.
+# Push sur main (ou bouton « Run workflow ») : tests, puis envoi du code et de vendor/
+# (sans les paquets de dev) en rsync sur le serveur.
 # Le .env, storage/ (images envoyées depuis l'admin, sauvegardes, journaux) et le lien
 # public/storage du serveur ne sont jamais touchés.
-#
-# Pour déployer automatiquement à chaque push sur main, retirer la condition
-# « github.event_name == 'workflow_dispatch' » du job deploy.
 #
 # Pas d'étape Node/Vite : le site n'utilise pas Vite, et « npm run build » viderait
 # public/build, qui contient les fichiers versionnés du gabarit de l'admin.
@@ -15,20 +11,7 @@ name: Déploiement
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      simulation:
-        description: "Simulation : liste ce qui serait envoyé ou supprimé, sans rien modifier sur le serveur"
-        type: boolean
-        default: false
-      contenus_par_defaut:
-        description: "Remplir les rubriques vides avec les contenus par défaut (SiteContentSeeder)"
-        type: boolean
-        default: false
-      contenus_exemple:
-        description: "Remplir les rubriques vides avec les contenus d'exemple (SiteExampleSeeder)"
-        type: boolean
-        default: false
+  workflow_dispatch: {}
 
 # Jamais deux déploiements en même temps, jamais d'interruption en cours.
 concurrency:
@@ -50,7 +33,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          # gd et exif : allègement des images envoyées (ImageOptimizer), couvert par les tests.
           extensions: mbstring, bcmath, pdo_sqlite, sqlite3, curl, intl, fileinfo, gd, exif
           coverage: none
 
@@ -70,17 +52,13 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     environment: PRODUCTION
-    # Déploiement uniquement au lancement manuel : un simple push ne touche jamais la production.
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/main'
     env:
       SERVEUR: ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}
       DOSSIER: ${{ secrets.SERVER_PATH }}
       SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
       # PHP 8.3 en ligne de commande sur le serveur (ex. /opt/cpanel/ea-php83/root/usr/bin/php).
       PHP: ${{ vars.PHP_BIN || 'php' }}
-      SIMULATION: ${{ inputs.simulation && '1' || '' }}
-      SEED_DEFAUT: ${{ inputs.contenus_par_defaut && '1' || '' }}
-      SEED_EXEMPLE: ${{ inputs.contenus_exemple && '1' || '' }}
     steps:
       # ── 1. Récupérer le code ─────────────────────────────────────────
       - name: Checkout
@@ -139,16 +117,12 @@ jobs:
             echo "::error::« $PHP » n'est pas PHP 8.3 ou plus sur le serveur. Créer la variable PHP_BIN (ex. /opt/cpanel/ea-php83/root/usr/bin/php) dans l'environnement PRODUCTION."
             exit 1
           fi
-          if ! ssh "$SERVEUR" "$PHP -r 'exit(extension_loaded(\"gd\") ? 0 : 1);'"; then
-            echo "::warning::Extension PHP « gd » absente sur le serveur : les images envoyées depuis l'admin ne seront pas allégées."
-          fi
 
       # ── 4. Contrôle du .env puis mise en maintenance ─────────────────
       # .env absent ou dangereux : arrêt avant toute coupure, site non touché.
       # Première installation, ou version en ligne qui plante : le déploiement
       # continue, c'est lui qui la répare.
       - name: Mise en maintenance
-        if: ${{ !inputs.simulation }}
         run: |
           ssh "$SERVEUR" "bash -s" <<EOF
             set -e
@@ -167,18 +141,6 @@ jobs:
               echo "Première installation : aucun code en ligne."
               exit 0
             fi
-            mkdir -p storage/framework
-            # Site déjà mis en maintenance depuis l'admin (Paramètres) : on s'en souvient
-            # pour ne pas le rouvrir au public à la fin du déploiement.
-            # (S'il est en maintenance à cause d'un déploiement précédent qui a échoué,
-            # le témoin « maintenance-deploiement » existe : celui-ci le rouvrira.)
-            if [ -f storage/framework/down ] && [ ! -f storage/framework/maintenance-deploiement ]; then
-              touch storage/framework/deja-en-maintenance
-              echo "Site déjà en maintenance : il le restera après le déploiement."
-              exit 0
-            fi
-            rm -f storage/framework/deja-en-maintenance
-            touch storage/framework/maintenance-deploiement
             # Caches régénérés ensuite ; d'anciens caches (paquets de dev…) feraient planter artisan.
             find bootstrap/cache -maxdepth 1 -name '*.php' -delete 2>/dev/null || true
             $PHP artisan down --retry=60 || echo "::warning::Mise en maintenance impossible sur la version en ligne : le déploiement la remplace."
@@ -187,16 +149,11 @@ jobs:
       # ── 5. Envoi des fichiers via rsync ──────────────────────────────
       # Les chemins exclus ne sont jamais supprimés par --delete : .env, storage/
       # (images de l'admin) et le lien public/storage restent intacts sur le serveur.
-      # En simulation : --dry-run, rien n'est écrit ; le journal liste chaque fichier
-      # qui serait envoyé, et « *deleting » devant chaque fichier qui serait supprimé.
+      # Le .htaccess racine du serveur est conservé : l'hébergeur y inscrit la version
+      # de PHP choisie dans cPanel, qu'un écrasement ferait disparaître.
       - name: Déployer via rsync
         run: |
-          OPTIONS="-az --delete --stats"
-          if [ "$SIMULATION" = "1" ]; then
-            OPTIONS="-az --delete --dry-run --itemize-changes"
-            echo "::notice::Simulation : aucun fichier n'est modifié sur le serveur."
-          fi
-          rsync $OPTIONS \
+          rsync -az --delete --stats \
             --exclude='/.git/' \
             --exclude='/.github/' \
             --exclude='/.env' \
@@ -213,27 +170,14 @@ jobs:
             --exclude='/public/.well-known/' --exclude='/public/cgi-bin/' \
             --exclude='.user.ini' --exclude='php.ini' --exclude='error_log' \
             ./ "$SERVEUR:$DOSSIER/"
-
-          # Le .htaccess racine (redirection vers public/) n'est déposé que s'il n'existe pas encore :
-          # celui du serveur contient souvent des lignes ajoutées par l'hébergeur (version de PHP
-          # choisie dans cPanel, certificat) qu'un écrasement ferait disparaître.
-          if [ "$SIMULATION" != "1" ]; then
-            rsync -az --ignore-existing .htaccess "$SERVEUR:$DOSSIER/"
-          fi
+          # Déposé seulement s'il n'existe pas encore sur le serveur (première installation).
+          rsync -az --ignore-existing .htaccess "$SERVEUR:$DOSSIER/"
 
       # ── 6. Commandes post-déploiement ────────────────────────────────
       # Un échec laisse le site en maintenance : une base à moitié migrée
       # ne doit jamais servir.
       - name: Post-deploy (migrations, contenus, caches)
-        if: ${{ !inputs.simulation }}
         run: |
-          # Seeders demandés au lancement manuel. Ils ne remplissent que les rubriques vides ;
-          # ils ne tournent pas à chaque push, sinon une rubrique vidée exprès en admin se
-          # remplirait à nouveau au déploiement suivant.
-          SEEDERS=""
-          if [ "$SEED_DEFAUT" = "1" ]; then SEEDERS="$SEEDERS SiteContentSeeder"; fi
-          if [ "$SEED_EXEMPLE" = "1" ]; then SEEDERS="$SEEDERS SiteExampleSeeder"; fi
-
           ssh "$SERVEUR" "bash -s" <<EOF
             set -e
             cd '$DOSSIER'
@@ -243,25 +187,20 @@ jobs:
             find bootstrap/cache -maxdepth 1 -name '*.php' -delete
             # Migrations d'abord : cache:clear (dans optimize:clear) écrit dans la
             # table cache, absente d'une base neuve. Elles créent aussi les permissions
-            # des écrans d'admin (SiteModulesSeeder).
+            # des écrans d'admin.
             $PHP artisan migrate --force
-            # Jamais « db:seed » sans --class : les anciens seeders vident utilisateurs, rôles et permissions.
-            for seeder in $SEEDERS; do
-              $PHP artisan db:seed --class=\$seeder --force
-            done
+            # Contenus par défaut, puis contenus d'exemple : ils ne remplissent que les rubriques
+            # vides et ne modifient jamais un contenu existant, donc sans effet après la première fois.
+            # Toujours avec --class : « db:seed » seul viderait utilisateurs, rôles et permissions.
+            $PHP artisan db:seed --class=SiteContentSeeder --force
+            $PHP artisan db:seed --class=SiteExampleSeeder --force
             # Lien public/storage -> storage/app/public : sans lui, aucune image de l'admin ne s'affiche.
             if [ ! -e public/storage ]; then
-              $PHP artisan storage:link || echo "::warning::Lien public/storage impossible à créer (symlink désactivé chez l'hébergeur ?) : le créer depuis le panneau d'hébergement."
+              $PHP artisan storage:link
             fi
             $PHP artisan optimize:clear
             $PHP artisan optimize
-            if [ -f storage/framework/deja-en-maintenance ]; then
-              rm -f storage/framework/deja-en-maintenance
-              echo "::notice::Le site était en maintenance avant le déploiement : il y est laissé (le rouvrir depuis l'admin)."
-            else
-              $PHP artisan up
-              rm -f storage/framework/maintenance-deploiement
-            fi
+            $PHP artisan up
           EOF
 
       - name: Nettoyage
